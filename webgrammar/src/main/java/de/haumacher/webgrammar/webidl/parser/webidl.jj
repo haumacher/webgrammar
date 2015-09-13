@@ -1,0 +1,884 @@
+options
+{
+  JDK_VERSION = "1.7";
+  STATIC = false;
+  UNICODE_INPUT = true;
+  JAVA_UNICODE_ESCAPE = false;
+}
+
+PARSER_BEGIN(Parser)
+package de.haumacher.webgrammar.webidl.parser;
+
+@SuppressWarnings({ "javadoc", "unused", "synthetic-access" })
+public class Parser {
+}
+
+PARSER_END(Parser)
+
+TOKEN :
+{
+  < INTEGER: 
+    ("-")? 
+    (  "0" 
+      (  (["0"-"7"])*
+        | ["X", "x"] (["0"-"9", "A"-"F", "a"-"f"])+
+      )
+      | ["1"-"9"] (["0"-"9"])*
+    )
+  >
+  
+|  < FLOAT: 
+    ("-")? 
+    (  
+      (  (["0"-"9"])+ "." (["0"-"9"])*
+        | (["0"-"9"])* "." (["0"-"9"])+
+      ) (["E", "e"] (["+"-"]", "?", "[", "0"-"9"])+)?
+      | (["0"-"9"])+ ["E", "e"] (["+"-"]", "?", "[", "0"-"9"])+
+    )
+  >
+  
+|  < IDENTIFIER: 
+    ["A"-"Z", "_", "a"-"z"] (["0"-"9", "A"-"Z", "_", "a"-"z"])*
+  >
+  
+|  < STRING: 
+    "\"" (~["\""])* "\""
+  >
+  
+|  < WHITESPACE: 
+    
+    (  (["\t", "\n", "\r", " "])+
+      | (["\t", "\n", "\r", " "])* (
+      (  "/" "/" (~["\n", "\r"])*
+        | "/" "*" ((~["\n", "\r"])*)? "*" "/"
+      ) (["\t", "\n", "\r", " "])*)+
+    )
+  >
+  
+|  < OTHER: 
+    ~["\t", "\n", "\r", " ", ".", ",", ":", ";", "-", "=", "?", "<", ">", "(", ")", "[", "]", "{", "}", "0"-"0", "A"-"A", "_", "a"-"a"]
+  >
+  
+}
+
+void ntDefinitions() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntDefinition() )*
+}
+
+void ntDefinition() : 
+{
+}
+{
+  ( "callback" ( < IDENTIFIER > "=" ntReturnType() "(" (ntArgumentListNonEmpty())? ")" ";" 
+      | ntInterface()
+    ) 
+    | ntInterface()
+    | ntPartial()
+    | ntDictionary()
+    | ntException()
+    | ntEnum()
+    | ntTypedef()
+    | ntImplementsStatement()
+  )
+}
+
+void ntInterface() : 
+{
+}
+{
+  "interface" < IDENTIFIER > (ntInheritanceNonEmpty())? "{" ((ntExtendedAttributeListNonEmpty())? ntInterfaceMember() )* "}" ";" 
+}
+
+void ntPartial() : 
+{
+}
+{
+  "partial" ntPartialDefinition() 
+}
+
+void ntPartialDefinition() : 
+{
+}
+{
+  ( ntPartialInterface()
+    | ntPartialDictionary()
+  )
+}
+
+void ntPartialInterface() : 
+{
+}
+{
+  "interface" < IDENTIFIER > "{" ((ntExtendedAttributeListNonEmpty())? ntInterfaceMember() )* "}" ";" 
+}
+
+void ntInterfaceMembers() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntInterfaceMember() )*
+}
+
+void ntInterfaceMember() : 
+{
+}
+{
+  ( ntConst()
+    | ntAttributeOrOperation()
+  )
+}
+
+void ntDictionary() : 
+{
+}
+{
+  "dictionary" < IDENTIFIER > (ntInheritanceNonEmpty())? "{" ((ntExtendedAttributeListNonEmpty())? ntDictionaryMember() )* "}" ";" 
+}
+
+void ntDictionaryMembers() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntDictionaryMember() )*
+}
+
+void ntDictionaryMember() : 
+{
+}
+{
+  ntType() < IDENTIFIER > (ntDefaultNonEmpty())? ";" 
+}
+
+void ntPartialDictionary() : 
+{
+}
+{
+  "dictionary" < IDENTIFIER > "{" ((ntExtendedAttributeListNonEmpty())? ntDictionaryMember() )* "}" ";" 
+}
+
+void ntDefault() : 
+{
+}
+{
+  (ntDefaultNonEmpty())?
+}
+
+void ntDefaultValue() : 
+{
+}
+{
+  ( ntConstValue()
+    | < STRING >
+  )
+}
+
+void ntException() : 
+{
+}
+{
+  "exception" < IDENTIFIER > (ntInheritanceNonEmpty())? "{" ((ntExtendedAttributeListNonEmpty())? ntExceptionMember() )* "}" ";" 
+}
+
+void ntExceptionMembers() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntExceptionMember() )*
+}
+
+void ntInheritance() : 
+{
+}
+{
+  (ntInheritanceNonEmpty())?
+}
+
+void ntEnum() : 
+{
+}
+{
+  "enum" < IDENTIFIER > "{" ntEnumValueList() "}" ";" 
+}
+
+void ntEnumValueList() : 
+{
+}
+{
+  < STRING > ("," < STRING > )* 
+}
+
+void ntEnumValues() : 
+{
+}
+{
+  ("," < STRING > )*
+}
+
+void ntTypedef() : 
+{
+}
+{
+  "typedef" (ntExtendedAttributeListNonEmpty())? ntType() < IDENTIFIER > ";" 
+}
+
+void ntImplementsStatement() : 
+{
+}
+{
+  < IDENTIFIER > "implements" < IDENTIFIER > ";" 
+}
+
+void ntConst() : 
+{
+}
+{
+  "const" ntConstType() < IDENTIFIER > "=" ntConstValue() ";" 
+}
+
+void ntConstValue() : 
+{
+}
+{
+  ( ntBooleanLiteral()
+    | ntFloatLiteral()
+    | < INTEGER >
+    | "null"
+  )
+}
+
+void ntBooleanLiteral() : 
+{
+}
+{
+  ( "true"
+    | "false"
+  )
+}
+
+void ntFloatLiteral() : 
+{
+}
+{
+  ( < FLOAT >
+    | "-" "Infinity" 
+    | "Infinity"
+    | "NaN"
+  )
+}
+
+void ntAttributeOrOperation() : 
+{
+}
+{
+  ( "stringifier" ntStringifierAttributeOrOperation() 
+    | ntAttribute()
+    | ntOperation()
+  )
+}
+
+void ntStringifierAttributeOrOperation() : 
+{
+}
+{
+  ( ntAttribute()
+    | ntOperationRest()
+    | ";"
+  )
+}
+
+void ntAttribute() : 
+{
+}
+{
+  (ntInheritNonEmpty())? (ntReadOnlyNonEmpty())? "attribute" ntType() < IDENTIFIER > ";" 
+}
+
+void ntInherit() : 
+{
+}
+{
+  (ntInheritNonEmpty())?
+}
+
+void ntReadOnly() : 
+{
+}
+{
+  (ntReadOnlyNonEmpty())?
+}
+
+void ntOperation() : 
+{
+}
+{
+  ntQualifiers() ntOperationRest() 
+}
+
+void ntQualifiers() : 
+{
+}
+{
+  ( "static"
+    | (ntSpecial() )*
+  )
+}
+
+void ntSpecials() : 
+{
+}
+{
+  (ntSpecial() )*
+}
+
+void ntSpecial() : 
+{
+}
+{
+  ( "getter"
+    | "setter"
+    | "creator"
+    | "deleter"
+    | "legacycaller"
+  )
+}
+
+void ntOperationRest() : 
+{
+}
+{
+  ntReturnType() (ntOptionalIdentifierNonEmpty())? "(" (ntArgumentListNonEmpty())? ")" ";" 
+}
+
+void ntOptionalIdentifier() : 
+{
+}
+{
+  (ntOptionalIdentifierNonEmpty())?
+}
+
+void ntArgumentList() : 
+{
+}
+{
+  (ntArgumentListNonEmpty())?
+}
+
+void ntArguments() : 
+{
+}
+{
+  ("," ntArgument() )*
+}
+
+void ntArgument() : 
+{
+}
+{
+  (ntExtendedAttributeListNonEmpty())? ntOptionalOrRequiredArgument() 
+}
+
+void ntOptionalOrRequiredArgument() : 
+{
+}
+{
+  ( "optional" ntType() ntArgumentName() (ntDefaultNonEmpty())? 
+    | ntType() (ntEllipsisNonEmpty())? ntArgumentName() 
+  )
+}
+
+void ntArgumentName() : 
+{
+}
+{
+  ( ntArgumentNameKeyword()
+    | < IDENTIFIER >
+  )
+}
+
+void ntEllipsis() : 
+{
+}
+{
+  (ntEllipsisNonEmpty())?
+}
+
+void ntExceptionMember() : 
+{
+}
+{
+  ( ntConst()
+    | ntExceptionField()
+  )
+}
+
+void ntExceptionField() : 
+{
+}
+{
+  ntType() < IDENTIFIER > ";" 
+}
+
+void ntExtendedAttributeList() : 
+{
+}
+{
+  (ntExtendedAttributeListNonEmpty())?
+}
+
+void ntExtendedAttributes() : 
+{
+}
+{
+  ("," ntExtendedAttribute() )*
+}
+
+void ntExtendedAttribute() : 
+{
+}
+{
+  ( "(" (ntExtendedAttributeInnerNonEmpty())? ")" (ntExtendedAttribute())? 
+    | "[" (ntExtendedAttributeInnerNonEmpty())? "]" (ntExtendedAttribute())? 
+    | "{" (ntExtendedAttributeInnerNonEmpty())? "}" (ntExtendedAttribute())? 
+    | ntOther() (ntExtendedAttribute())? 
+  )
+}
+
+void ntExtendedAttributeRest() : 
+{
+}
+{
+  (ntExtendedAttribute())?
+}
+
+void ntExtendedAttributeInner() : 
+{
+}
+{
+  (ntExtendedAttributeInnerNonEmpty())?
+}
+
+void ntOther() : 
+{
+}
+{
+  ( < INTEGER >
+    | < FLOAT >
+    | < IDENTIFIER >
+    | < STRING >
+    | < OTHER >
+    | "-"
+    | "."
+    | "..."
+    | ":"
+    | ";"
+    | "<"
+    | "="
+    | ">"
+    | "?"
+    | "Date"
+    | "DOMString"
+    | "Infinity"
+    | "NaN"
+    | "any"
+    | "boolean"
+    | "byte"
+    | "double"
+    | "false"
+    | "float"
+    | "long"
+    | "null"
+    | "object"
+    | "octet"
+    | "or"
+    | "optional"
+    | "sequence"
+    | "short"
+    | "true"
+    | "unsigned"
+    | "void"
+    | ntArgumentNameKeyword()
+  )
+}
+
+void ntArgumentNameKeyword() : 
+{
+}
+{
+  ( "attribute"
+    | "callback"
+    | "const"
+    | "creator"
+    | "deleter"
+    | "dictionary"
+    | "enum"
+    | "exception"
+    | "getter"
+    | "implements"
+    | "inherit"
+    | "interface"
+    | "legacycaller"
+    | "partial"
+    | "setter"
+    | "static"
+    | "stringifier"
+    | "typedef"
+    | "unrestricted"
+  )
+}
+
+void ntOtherOrComma() : 
+{
+}
+{
+  ( ntOther()
+    | ","
+  )
+}
+
+void ntType() : 
+{
+}
+{
+  ( ntSingleType()
+    | ntUnionType() (ntTypeSuffixNonEmpty())? 
+  )
+}
+
+void ntSingleType() : 
+{
+}
+{
+  ( ntNonAnyType()
+    | "any" (ntTypeSuffixStartingWithArrayNonEmpty())? 
+  )
+}
+
+void ntUnionType() : 
+{
+}
+{
+  "(" ntUnionMemberType() ("or" ntUnionMemberType() )+ ")" 
+}
+
+void ntUnionMemberType() : 
+{
+}
+{
+  ( ntNonAnyType()
+    | ntUnionType() (ntTypeSuffixNonEmpty())? 
+    | "any" "[" "]" (ntTypeSuffixNonEmpty())? 
+  )
+}
+
+void ntUnionMemberTypes() : 
+{
+}
+{
+  ("or" ntUnionMemberType() )*
+}
+
+void ntNonAnyType() : 
+{
+}
+{
+  ( ntPrimitiveType() (ntTypeSuffixNonEmpty())? 
+    | "DOMString" (ntTypeSuffixNonEmpty())? 
+    | < IDENTIFIER > (ntTypeSuffixNonEmpty())? 
+    | "sequence" "<" ntType() ">" (ntNullNonEmpty())? 
+    | "object" (ntTypeSuffixNonEmpty())? 
+    | "Date" (ntTypeSuffixNonEmpty())? 
+  )
+}
+
+void ntConstType() : 
+{
+}
+{
+  ( ntPrimitiveType() (ntNullNonEmpty())? 
+    | < IDENTIFIER > (ntNullNonEmpty())? 
+  )
+}
+
+void ntPrimitiveType() : 
+{
+}
+{
+  ( ntUnsignedIntegerType()
+    | ntUnrestrictedFloatType()
+    | "boolean"
+    | "byte"
+    | "octet"
+  )
+}
+
+void ntUnrestrictedFloatType() : 
+{
+}
+{
+  ( "unrestricted" ntFloatType() 
+    | ntFloatType()
+  )
+}
+
+void ntFloatType() : 
+{
+}
+{
+  ( "float"
+    | "double"
+  )
+}
+
+void ntUnsignedIntegerType() : 
+{
+}
+{
+  ( "unsigned" ntIntegerType() 
+    | ntIntegerType()
+  )
+}
+
+void ntIntegerType() : 
+{
+}
+{
+  ( "short"
+    | "long" (ntOptionalLongNonEmpty())? 
+  )
+}
+
+void ntOptionalLong() : 
+{
+}
+{
+  (ntOptionalLongNonEmpty())?
+}
+
+void ntTypeSuffix() : 
+{
+}
+{
+  (ntTypeSuffixNonEmpty())?
+}
+
+void ntTypeSuffixStartingWithArray() : 
+{
+}
+{
+  (ntTypeSuffixStartingWithArrayNonEmpty())?
+}
+
+void ntNull() : 
+{
+}
+{
+  (ntNullNonEmpty())?
+}
+
+void ntReturnType() : 
+{
+}
+{
+  ( ntType()
+    | "void"
+  )
+}
+
+void ntExtendedAttributeNoArgs() : 
+{
+}
+{
+  < IDENTIFIER >
+}
+
+void ntExtendedAttributeArgList() : 
+{
+}
+{
+  < IDENTIFIER > "(" (ntArgumentListNonEmpty())? ")" 
+}
+
+void ntExtendedAttributeIdent() : 
+{
+}
+{
+  < IDENTIFIER > "=" < IDENTIFIER > 
+}
+
+void ntExtendedAttributeNamedArgList() : 
+{
+}
+{
+  < IDENTIFIER > "=" < IDENTIFIER > "(" (ntArgumentListNonEmpty())? ")" 
+}
+
+void ntDefinitionsNonEmpty() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntDefinition() )+
+}
+
+void ntInterfaceMembersNonEmpty() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntInterfaceMember() )+
+}
+
+void ntDictionaryMembersNonEmpty() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntDictionaryMember() )+
+}
+
+void ntDefaultNonEmpty() : 
+{
+}
+{
+  "=" ntDefaultValue() 
+}
+
+void ntExceptionMembersNonEmpty() : 
+{
+}
+{
+  ((ntExtendedAttributeListNonEmpty())? ntExceptionMember() )+
+}
+
+void ntInheritanceNonEmpty() : 
+{
+}
+{
+  ":" < IDENTIFIER > 
+}
+
+void ntEnumValuesNonEmpty() : 
+{
+}
+{
+  ("," < STRING > )+
+}
+
+void ntInheritNonEmpty() : 
+{
+}
+{
+  "inherit"
+}
+
+void ntReadOnlyNonEmpty() : 
+{
+}
+{
+  "readonly"
+}
+
+void ntSpecialsNonEmpty() : 
+{
+}
+{
+  (ntSpecial() )+
+}
+
+void ntOptionalIdentifierNonEmpty() : 
+{
+}
+{
+  < IDENTIFIER >
+}
+
+void ntArgumentListNonEmpty() : 
+{
+}
+{
+  ntArgument() ("," ntArgument() )* 
+}
+
+void ntArgumentsNonEmpty() : 
+{
+}
+{
+  ("," ntArgument() )+
+}
+
+void ntEllipsisNonEmpty() : 
+{
+}
+{
+  "..."
+}
+
+void ntExtendedAttributeListNonEmpty() : 
+{
+}
+{
+  "[" ntExtendedAttribute() ("," ntExtendedAttribute() )* "]" 
+}
+
+void ntExtendedAttributesNonEmpty() : 
+{
+}
+{
+  ("," ntExtendedAttribute() )+
+}
+
+void ntExtendedAttributeRestNonEmpty() : 
+{
+}
+{
+  ntExtendedAttribute()
+}
+
+void ntExtendedAttributeInnerNonEmpty() : 
+{
+}
+{
+  ( "(" (ntExtendedAttributeInnerNonEmpty())? ")" (ntExtendedAttributeInnerNonEmpty())? 
+    | "[" (ntExtendedAttributeInnerNonEmpty())? "]" (ntExtendedAttributeInnerNonEmpty())? 
+    | "{" (ntExtendedAttributeInnerNonEmpty())? "}" (ntExtendedAttributeInnerNonEmpty())? 
+    | ntOtherOrComma() (ntExtendedAttributeInnerNonEmpty())? 
+  )
+}
+
+void ntUnionMemberTypesNonEmpty() : 
+{
+}
+{
+  ("or" ntUnionMemberType() )+
+}
+
+void ntOptionalLongNonEmpty() : 
+{
+}
+{
+  "long"
+}
+
+void ntTypeSuffixNonEmpty() : 
+{
+}
+{
+  ( "[" "]" (ntTypeSuffixNonEmpty())? 
+    | "?" (ntTypeSuffixStartingWithArrayNonEmpty())? 
+  )
+}
+
+void ntTypeSuffixStartingWithArrayNonEmpty() : 
+{
+}
+{
+  "[" "]" (ntTypeSuffixNonEmpty())? 
+}
+
+void ntNullNonEmpty() : 
+{
+}
+{
+  "?"
+}
+

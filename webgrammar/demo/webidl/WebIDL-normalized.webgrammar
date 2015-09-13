@@ -1,0 +1,468 @@
+@package(de.haumacher.webidl.parser)
+grammar {
+  @type(int)
+  integer = ("-")? 
+  (  "0" 
+    (  (["0"-"7"])*
+      | ["X", "x"] (["0"-"9", "A"-"F", "a"-"f"])+
+    )
+    | ["1"-"9"] (["0"-"9"])*
+  );
+  
+  @type(float)
+  float = ("-")? 
+  (  
+    (  (["0"-"9"])+ "." (["0"-"9"])*
+      | (["0"-"9"])* "." (["0"-"9"])+
+    ) (["E", "e"] (["+"-"]", "?", "[", "0"-"9"])+)?
+    | (["0"-"9"])+ ["E", "e"] (["+"-"]", "?", "[", "0"-"9"])+
+  );
+  
+  identifier = ["A"-"Z", "_", "a"-"z"] (["0"-"9", "A"-"Z", "_", "a"-"z"])*;
+  
+  @type(String, de.haumacher.webidl.parser.util.Utils.getStringContents)
+  string = "\"" (~["\""])* "\"";
+  
+  @ignore
+  @some(complex, 
+    @annotation(
+      @with, 
+      @inner(annotations)))
+  whitespace = 
+  (  (["\t", "\n", "\r", " "])+
+    | (["\t", "\n", "\r", " "])* (
+    (  "/" "/" (~["\n", "\r"])*
+      | "/" "*" ((~["\n", "\r"])*)? "*" "/"
+    ) (["\t", "\n", "\r", " "])*)+
+  );
+  
+  other = ~["\t", "\n", "\r", " ", ".", ",", ":", ";", "-", "=", "?", "<", ">", "(", ")", "[", "]", "{", "}", "0"-"0", "A"-"A", "_", "a"-"a"];
+  
+  @initial
+  Definitions -> (ExtendedAttributeList Definition )*;
+  
+  Definition -> 
+    ( "callback" 
+      ( identifier "=" ReturnType "(" ArgumentList ")" ";" 
+      | Interface
+      )
+     
+    | Interface
+    | Partial
+    | Dictionary
+    | Exception
+    | Enum
+    | Typedef
+    | ImplementsStatement
+    )
+  ;
+  
+  Interface -> "interface" identifier Inheritance "{" InterfaceMembers "}" ";" ;
+  
+  Partial -> "partial" PartialDefinition ;
+  
+  PartialDefinition -> 
+    ( PartialInterface
+    | PartialDictionary
+    )
+  ;
+  
+  @node(Interface)
+  PartialInterface -> "interface" identifier "{" InterfaceMembers "}" ";" ;
+  
+  InterfaceMembers -> (ExtendedAttributeList InterfaceMember )*;
+  
+  InterfaceMember -> 
+    ( Const
+    | AttributeOrOperation
+    )
+  ;
+  
+  Dictionary -> "dictionary" identifier Inheritance "{" DictionaryMembers "}" ";" ;
+  
+  DictionaryMembers -> (ExtendedAttributeList DictionaryMember )*;
+  
+  DictionaryMember -> Type identifier Default ";" ;
+  
+  @node(Dictionary)
+  PartialDictionary -> "dictionary" identifier "{" (ExtendedAttributeList DictionaryMember )* "}" ";" ;
+  
+  Default -> (Default$NonEmpty)?;
+  
+  DefaultValue -> 
+    ( ConstValue
+    | string
+    )
+  ;
+  
+  Exception -> "exception" identifier Inheritance "{" ExceptionMembers "}" ";" ;
+  
+  ExceptionMembers -> (ExtendedAttributeList ExceptionMember )*;
+  
+  Inheritance -> (Inheritance$NonEmpty)?;
+  
+  Enum -> "enum" identifier "{" EnumValueList "}" ";" ;
+  
+  EnumValueList -> (string, ",")+;
+  
+  EnumValues -> ("," string )*;
+  
+  Typedef -> "typedef" ExtendedAttributeList ExceptionField ;
+  
+  ImplementsStatement -> identifier "implements" identifier ";" ;
+  
+  Const -> "const" ConstType identifier "=" ConstValue ";" ;
+  
+  ConstValue -> 
+    ( BooleanLiteral
+    | FloatLiteral
+    | integer
+    | "null"
+    )
+  ;
+  
+  BooleanLiteral -> 
+    ( "true"
+    | "false"
+    )
+  ;
+  
+  FloatLiteral -> 
+    ( float
+    | "-" "Infinity" 
+    | "Infinity"
+    | "NaN"
+    )
+  ;
+  
+  AttributeOrOperation -> 
+    ( "stringifier" StringifierAttributeOrOperation 
+    | Attribute
+    | Operation
+    )
+  ;
+  
+  StringifierAttributeOrOperation -> 
+    ( Attribute
+    | OperationRest
+    | ";"
+    )
+  ;
+  
+  Attribute -> Inherit ReadOnly "attribute" ExceptionField ;
+  
+  Inherit -> (Inherit$NonEmpty)?;
+  
+  ReadOnly -> (ReadOnly$NonEmpty)?;
+  
+  Operation -> Qualifiers OperationRest ;
+  
+  Qualifiers -> 
+    ( "static"
+    | Specials
+    )
+  ;
+  
+  Specials -> (Special)*;
+  
+  Special -> 
+    ( "getter"
+    | "setter"
+    | "creator"
+    | "deleter"
+    | "legacycaller"
+    )
+  ;
+
+  @fragment(Operation)
+  OperationRest -> ReturnType OptionalIdentifier "(" ArgumentList ")" ";" ;
+  
+  OptionalIdentifier -> (OptionalIdentifier$NonEmpty)?;
+  
+  ArgumentList -> (Argument, ",")*;
+  
+  Arguments -> ("," Argument )*;
+  
+  Argument -> ExtendedAttributeList OptionalOrRequiredArgument ;
+  
+  OptionalOrRequiredArgument -> 
+    ( "optional" Type ArgumentName Default 
+    | Type Ellipsis ArgumentName 
+    )
+  ;
+  
+  ArgumentName -> 
+    ( ArgumentNameKeyword
+    | identifier
+    )
+  ;
+  
+  Ellipsis -> (Ellipsis$NonEmpty)?;
+  
+  ExceptionMember -> 
+    ( Const
+    | ExceptionField
+    )
+  ;
+  
+  ExceptionField -> Type identifier ";" ;
+  
+  ExtendedAttributeList -> (ExtendedAttributeList$NonEmpty)?;
+  
+  ExtendedAttributes -> ("," ExtendedAttribute )*;
+  
+  ExtendedAttribute -> 
+    ( "(" ExtendedAttributeInner ")" ExtendedAttributeRest 
+    | "[" ExtendedAttributeInner "]" ExtendedAttributeRest 
+    | "{" ExtendedAttributeInner "}" ExtendedAttributeRest 
+    | Other ExtendedAttributeRest 
+    )
+  ;
+  
+  ExtendedAttributeRest -> (ExtendedAttribute)?;
+  
+  ExtendedAttributeInner -> (ExtendedAttributeInner$NonEmpty)?;
+  
+  Other -> 
+    ( integer
+    | float
+    | identifier
+    | string
+    | other
+    | "-"
+    | "."
+    | Ellipsis$NonEmpty
+    | ":"
+    | ";"
+    | "<"
+    | "="
+    | ">"
+    | Null$NonEmpty
+    | "Date"
+    | "DOMString"
+    | "Infinity"
+    | "NaN"
+    | "any"
+    | "boolean"
+    | "byte"
+    | "double"
+    | "false"
+    | "float"
+    | OptionalLong$NonEmpty
+    | "null"
+    | "object"
+    | "octet"
+    | "or"
+    | "optional"
+    | "sequence"
+    | "short"
+    | "true"
+    | "unsigned"
+    | "void"
+    | ArgumentNameKeyword
+    )
+  ;
+  
+  ArgumentNameKeyword -> 
+    ( "attribute"
+    | "callback"
+    | "const"
+    | "creator"
+    | "deleter"
+    | "dictionary"
+    | "enum"
+    | "exception"
+    | "getter"
+    | "implements"
+    | Inherit$NonEmpty
+    | "interface"
+    | "legacycaller"
+    | "partial"
+    | "setter"
+    | "static"
+    | "stringifier"
+    | "typedef"
+    | "unrestricted"
+    )
+  ;
+  
+  OtherOrComma -> 
+    ( Other
+    | ","
+    )
+  ;
+  
+  Type -> 
+    ( SingleType
+    | UnionType TypeSuffix 
+    )
+  ;
+  
+  SingleType -> 
+    ( NonAnyType
+    | "any" TypeSuffixStartingWithArray 
+    )
+  ;
+  
+  UnionType -> "(" (UnionMemberType, "or")[2...] ")" ;
+  
+  UnionMemberType -> 
+    ( NonAnyType
+    | UnionType TypeSuffix 
+    | "any" TypeSuffixStartingWithArray$NonEmpty 
+    )
+  ;
+  
+  UnionMemberTypes -> ("or" UnionMemberType )*;
+  
+  NonAnyType -> 
+    ( PrimitiveType TypeSuffix 
+    | "DOMString" TypeSuffix 
+    | identifier TypeSuffix 
+    | "sequence" "<" Type ">" Null 
+    | "object" TypeSuffix 
+    | "Date" TypeSuffix 
+    )
+  ;
+  
+  ConstType -> 
+    ( PrimitiveType Null 
+    | identifier Null 
+    )
+  ;
+  
+  PrimitiveType -> 
+    ( UnsignedIntegerType
+    | UnrestrictedFloatType
+    | "boolean"
+    | "byte"
+    | "octet"
+    )
+  ;
+  
+  UnrestrictedFloatType -> 
+    ( "unrestricted" FloatType 
+    | FloatType
+    )
+  ;
+  
+  FloatType -> 
+    ( "float"
+    | "double"
+    )
+  ;
+  
+  UnsignedIntegerType -> 
+    ( "unsigned" IntegerType 
+    | IntegerType
+    )
+  ;
+  
+  IntegerType -> 
+    ( "short"
+    | OptionalLong$NonEmpty OptionalLong 
+    )
+  ;
+  
+  OptionalLong -> (OptionalLong$NonEmpty)?;
+  
+  TypeSuffix -> (TypeSuffix$NonEmpty)?;
+  
+  TypeSuffixStartingWithArray -> (TypeSuffixStartingWithArray$NonEmpty)?;
+  
+  Null -> (Null$NonEmpty)?;
+  
+  ReturnType -> 
+    ( Type
+    | "void"
+    )
+  ;
+  
+  ExtendedAttributeNoArgs -> identifier;
+  
+  ExtendedAttributeArgList -> identifier "(" ArgumentList ")" ;
+  
+  ExtendedAttributeIdent -> identifier "=" identifier ;
+  
+  ExtendedAttributeNamedArgList -> identifier "=" ExtendedAttributeArgList ;
+  
+  @synthesized(Definitions)
+  Definitions$NonEmpty -> (ExtendedAttributeList Definition )+;
+  
+  @synthesized(InterfaceMembers)
+  InterfaceMembers$NonEmpty -> (ExtendedAttributeList InterfaceMember )+;
+  
+  @synthesized(DictionaryMembers)
+  DictionaryMembers$NonEmpty -> (ExtendedAttributeList DictionaryMember )+;
+  
+  @synthesized(Default)
+  Default$NonEmpty -> "=" DefaultValue ;
+  
+  @synthesized(ExceptionMembers)
+  ExceptionMembers$NonEmpty -> (ExtendedAttributeList ExceptionMember )+;
+  
+  @synthesized(Inheritance)
+  Inheritance$NonEmpty -> ":" identifier ;
+  
+  @synthesized(EnumValues)
+  EnumValues$NonEmpty -> ("," string )+;
+  
+  @synthesized(Inherit)
+  Inherit$NonEmpty -> "inherit";
+  
+  @synthesized(ReadOnly)
+  ReadOnly$NonEmpty -> "readonly";
+  
+  @synthesized(Specials)
+  Specials$NonEmpty -> (Special)+;
+  
+  @synthesized(OptionalIdentifier)
+  OptionalIdentifier$NonEmpty -> identifier;
+  
+  @synthesized(ArgumentList)
+  ArgumentList$NonEmpty -> (Argument, ",")+;
+  
+  @synthesized(Arguments)
+  Arguments$NonEmpty -> ("," Argument )+;
+  
+  @synthesized(Ellipsis)
+  Ellipsis$NonEmpty -> "...";
+  
+  @synthesized(ExtendedAttributeList)
+  ExtendedAttributeList$NonEmpty -> "[" (ExtendedAttribute, ",")+ "]" ;
+  
+  @synthesized(ExtendedAttributes)
+  ExtendedAttributes$NonEmpty -> ("," ExtendedAttribute )+;
+  
+  @synthesized(ExtendedAttributeRest)
+  ExtendedAttributeRest$NonEmpty -> ExtendedAttribute;
+  
+  @synthesized(ExtendedAttributeInner)
+  ExtendedAttributeInner$NonEmpty -> 
+    ( "(" ExtendedAttributeInner ")" ExtendedAttributeInner 
+    | "[" ExtendedAttributeInner "]" ExtendedAttributeInner 
+    | "{" ExtendedAttributeInner "}" ExtendedAttributeInner 
+    | OtherOrComma ExtendedAttributeInner 
+    )
+  ;
+  
+  @synthesized(UnionMemberTypes)
+  UnionMemberTypes$NonEmpty -> ("or" UnionMemberType )+;
+  
+  @synthesized(OptionalLong)
+  OptionalLong$NonEmpty -> "long";
+  
+  @synthesized(TypeSuffix)
+  TypeSuffix$NonEmpty -> 
+    ( TypeSuffixStartingWithArray$NonEmpty
+    | Null$NonEmpty TypeSuffixStartingWithArray 
+    )
+  ;
+  
+  @synthesized(TypeSuffixStartingWithArray)
+  TypeSuffixStartingWithArray$NonEmpty -> "[" "]" TypeSuffix ;
+  
+  @synthesized(Null)
+  Null$NonEmpty -> "?";
+  
+}

@@ -1,0 +1,543 @@
+@package(de.haumacher.webidl.parser)
+grammar {
+	
+	// Rule 
+	@type(int)
+	integer	= ("-")? ( ( ( "0" ( ( ( ( ["0" - "7"] )* ) | (["X", "x"] (["0" - "9", "A" - "F", "a" - "f"])+)))) | (["1" - "9"] (["0" - "9"])*)))	
+			;
+	
+	// Rule 
+	@type(float)
+	float	=	("-")? (((((((["0" - "9"])+ "." (["0" - "9"])*) | ((["0" - "9"])* "." (["0" - "9"])+))) ((["E", "e"] (["+" - "]", "?", "[", "0" - "9"])+))?) | ((["0" - "9"])+ ["E", "e"] (["+" - "]", "?", "[", "0" - "9"])+)))	
+			;
+	
+	// Rule 
+	identifier	=	["A" - "Z", "_", "a" - "z"] (["0" - "9", "A" - "Z", "_", "a" - "z"])*	
+			;
+	
+	// Rule 
+	@type(String, de.haumacher.webidl.parser.util.Utils.getStringContents)
+	string	=	"\"" (~["\""])* "\""	
+			;
+	
+	// Rule 
+	@ignore
+	@some(complex, @annotation(@with, @inner(annotations)))
+	whitespace	=	(((["\t", "\n", "\r", " "])+) | ((["\t", "\n", "\r", " "])* ((((("/" "/" (~["\n", "\r"])*) | ("/" "*" ((~["\n", "\r"])*)? "*" "/"))) (["\t", "\n", "\r", " "])*))+))	
+			;
+	
+	// Rule 
+	other	=	~["\t", "\n", "\r", " ", ".", ",", ":", ";", "-", "=", "?", "<", ">", "(", ")", "[", "]", "{", "}", "0"-"0", "A"-"A", "_", "a"-"a"]	
+			;
+	
+	// Rule [1]
+	@initial
+	Definitions	->
+				ExtendedAttributeList Definition Definitions  
+			|	\epsilon	
+			;
+	
+	// Rule [2]
+	Definition	->
+				"callback" (
+						identifier "=" ReturnType "(" ArgumentList ")" ";"	
+					|	Interface	
+				)  
+			|	Interface	
+			|	Partial  
+			|	Dictionary  
+			|	Exception  
+			|	Enum  
+			|	Typedef  
+			|	ImplementsStatement	
+			;
+	
+	
+	// Rule [5]
+	Interface	->
+				"interface" identifier Inheritance "{" InterfaceMembers "}" ";"	
+			;
+	
+	// Rule [6]
+	Partial	->
+				"partial" PartialDefinition	
+			;
+	
+	// Rule [7]
+	PartialDefinition	->
+				PartialInterface  
+			|	PartialDictionary	
+			;
+	
+	// Rule [8]
+	@node(Interface)
+	PartialInterface	->
+				"interface" identifier "{" InterfaceMembers "}" ";"	
+			;
+	
+	// Rule [9]
+	InterfaceMembers	->
+				ExtendedAttributeList InterfaceMember InterfaceMembers  
+			|	\epsilon	
+			;
+	
+	// Rule [10]
+	InterfaceMember	->
+				Const  
+			|	AttributeOrOperation	
+			;
+	
+	// Rule [11]
+	Dictionary	->
+				"dictionary" identifier Inheritance "{" DictionaryMembers "}" ";"	
+			;
+	
+	// Rule [12]
+	DictionaryMembers	->
+				ExtendedAttributeList DictionaryMember DictionaryMembers  
+			|	\epsilon	
+			;
+	
+	// Rule [13]
+	DictionaryMember	->
+				Type identifier Default ";"	
+			;
+	
+	// Rule [14]
+	@node(Dictionary)
+	PartialDictionary	->
+				"dictionary" identifier "{" DictionaryMembers "}" ";"	
+			;
+	
+	// Rule [15]
+	Default	->
+				"=" DefaultValue  
+			|	\epsilon	
+			;
+	
+	// Rule [16]
+	DefaultValue	->
+				ConstValue  
+			|	string	
+			;
+	
+	// Rule [17]
+	Exception	->
+				"exception" identifier Inheritance "{" ExceptionMembers "}" ";"	
+			;
+	
+	// Rule [18]
+	ExceptionMembers	->
+				ExtendedAttributeList ExceptionMember ExceptionMembers  
+			|	\epsilon	
+			;
+	
+	// Rule [19]
+	Inheritance	->
+				":" identifier  
+			|	\epsilon	
+			;
+	
+	// Rule [20]
+	Enum	->
+				"enum" identifier "{" EnumValueList "}" ";"	
+			;
+	
+	// Rule [21]
+	EnumValueList	->
+				string EnumValues	
+			;
+	
+	// Rule [22]
+	EnumValues	->
+				"," string EnumValues  
+			|	\epsilon	
+			;
+	
+	// Rule [24]
+	Typedef	->
+				"typedef" ExtendedAttributeList Type identifier ";"	
+			;
+	
+	// Rule [25]
+	ImplementsStatement	->
+				identifier "implements" identifier ";"	
+			;
+	
+	// Rule [26]
+	Const	->
+				"const" ConstType identifier "=" ConstValue ";"	
+			;
+	
+	// Rule [27]
+	ConstValue	->
+				BooleanLiteral  
+			|	FloatLiteral  
+			|	integer  
+			|	"null"	
+			;
+	
+	// Rule [28]
+	BooleanLiteral	->
+				"true"  
+			|	"false"	
+			;
+	
+	// Rule [29]
+	FloatLiteral	->
+				float  
+			|	"-" "Infinity"  
+			|	"Infinity"  
+			|	"NaN"	
+			;
+	
+	// Rule [30]
+	AttributeOrOperation	->
+				"stringifier" StringifierAttributeOrOperation  
+			|	Attribute  
+			|	Operation	
+			;
+	
+	// Rule [31]
+	StringifierAttributeOrOperation	->
+				Attribute  
+			|	OperationRest  
+			|	";"	
+			;
+	
+	// Rule [32]
+	Attribute	->
+				Inherit ReadOnly "attribute" Type identifier ";"	
+			;
+	
+	// Rule [33]
+	Inherit	->
+				"inherit"  
+			|	\epsilon	
+			;
+	
+	// Rule [34]
+	ReadOnly	->
+				"readonly"  
+			|	\epsilon	
+			;
+	
+	// Rule [35]
+	Operation	->
+				Qualifiers OperationRest	
+			;
+	
+	// Rule [36]
+	Qualifiers	->
+				"static"  
+			|	Specials	
+			;
+	
+	// Rule [37]
+	Specials	->
+				Special Specials  
+			|	\epsilon	
+			;
+	
+	// Rule [38]
+	Special	->
+				"getter"  
+			|	"setter"  
+			|	"creator"  
+			|	"deleter"  
+			|	"legacycaller"	
+			;
+	
+	// Rule [39]
+	@fragment(Operation)
+	OperationRest	->
+				ReturnType OptionalIdentifier "(" ArgumentList ")" ";"	
+			;
+	
+	// Rule [40]
+	OptionalIdentifier	->
+				identifier  
+			|	\epsilon	
+			;
+	
+	// Rule [41]
+	ArgumentList	->
+				Argument Arguments  
+			|	\epsilon	
+			;
+	
+	// Rule [42]
+	Arguments	->
+				"," Argument Arguments  
+			|	\epsilon	
+			;
+	
+	// Rule [43]
+	Argument	->
+				ExtendedAttributeList OptionalOrRequiredArgument	
+			;
+	
+	// Rule [44]
+	OptionalOrRequiredArgument	->
+				"optional" Type ArgumentName Default  
+			|	Type Ellipsis ArgumentName	
+			;
+	
+	// Rule [45]
+	ArgumentName	->
+				ArgumentNameKeyword  
+			|	identifier	
+			;
+	
+	// Rule [46]
+	Ellipsis	->
+				"..."  
+			|	\epsilon	
+			;
+	
+	// Rule [47]
+	ExceptionMember	->
+				Const  
+			|	ExceptionField	
+			;
+	
+	// Rule [48]
+	ExceptionField	->
+				Type identifier ";"	
+			;
+	
+	// Rule [49]
+	ExtendedAttributeList	->
+				"[" ExtendedAttribute ExtendedAttributes "]"  
+			|	\epsilon	
+			;
+	
+	// Rule [50]
+	ExtendedAttributes	->
+				"," ExtendedAttribute ExtendedAttributes  
+			|	\epsilon	
+			;
+	
+	// Rule [51]
+	ExtendedAttribute	->
+				"(" ExtendedAttributeInner ")" ExtendedAttributeRest  
+			|	"[" ExtendedAttributeInner "]" ExtendedAttributeRest  
+			|	"{" ExtendedAttributeInner "}" ExtendedAttributeRest  
+			|	Other ExtendedAttributeRest	
+			;
+	
+	// Rule [52]
+	ExtendedAttributeRest	->
+				ExtendedAttribute  
+			|	\epsilon	
+			;
+	
+	// Rule [53]
+	ExtendedAttributeInner	->
+				"(" ExtendedAttributeInner ")" ExtendedAttributeInner  
+			|	"[" ExtendedAttributeInner "]" ExtendedAttributeInner  
+			|	"{" ExtendedAttributeInner "}" ExtendedAttributeInner  
+			|	OtherOrComma ExtendedAttributeInner  
+			|	\epsilon	
+			;
+	
+	// Rule [54]
+	Other	->
+				integer  
+			|	float  
+			|	identifier  
+			|	string  
+			|	other  
+			|	"-"  
+			|	"."  
+			|	"..."  
+			|	":"  
+			|	";"  
+			|	"<"  
+			|	"="  
+			|	">"  
+			|	"?"  
+			|	"Date"  
+			|	"DOMString"  
+			|	"Infinity"  
+			|	"NaN"  
+			|	"any"  
+			|	"boolean"  
+			|	"byte"  
+			|	"double"  
+			|	"false"  
+			|	"float"  
+			|	"long"  
+			|	"null"  
+			|	"object"  
+			|	"octet"  
+			|	"or"  
+			|	"optional"  
+			|	"sequence"  
+			|	"short"  
+			|	"true"  
+			|	"unsigned"  
+			|	"void"  
+			|	ArgumentNameKeyword	
+			;
+	
+	// Rule [55]
+	ArgumentNameKeyword	->
+				"attribute"  
+			|	"callback"  
+			|	"const"  
+			|	"creator"  
+			|	"deleter"  
+			|	"dictionary"  
+			|	"enum"  
+			|	"exception"  
+			|	"getter"  
+			|	"implements"  
+			|	"inherit"  
+			|	"interface"  
+			|	"legacycaller"  
+			|	"partial"  
+			|	"setter"  
+			|	"static"  
+			|	"stringifier"  
+			|	"typedef"  
+			|	"unrestricted"	
+			;
+	
+	// Rule [56]
+	OtherOrComma	->
+				Other  
+			|	","	
+			;
+	
+	// Rule [57]
+	Type	->
+				SingleType  
+			|	UnionType TypeSuffix	
+			;
+	
+	// Rule [58]
+	SingleType	->
+				NonAnyType  
+			|	"any" TypeSuffixStartingWithArray	
+			;
+	
+	// Rule [59]
+	UnionType	->
+				"(" UnionMemberType "or" UnionMemberType UnionMemberTypes ")"	
+			;
+	
+	// Rule [60]
+	UnionMemberType	->
+				NonAnyType  
+			|	UnionType TypeSuffix  
+			|	"any" "[" "]" TypeSuffix	
+			;
+	
+	// Rule [61]
+	UnionMemberTypes	->
+				"or" UnionMemberType UnionMemberTypes  
+			|	\epsilon	
+			;
+	
+	// Rule [62]
+	NonAnyType	->
+				PrimitiveType TypeSuffix  
+			|	"DOMString" TypeSuffix  
+			|	identifier TypeSuffix  
+			|	"sequence" "<" Type ">" Null  
+			|	"object" TypeSuffix  
+			|	"Date" TypeSuffix	
+			;
+	
+	// Rule [63]
+	ConstType	->
+				PrimitiveType Null  
+			|	identifier Null	
+			;
+	
+	// Rule [64]
+	PrimitiveType	->
+				UnsignedIntegerType  
+			|	UnrestrictedFloatType  
+			|	"boolean"  
+			|	"byte"  
+			|	"octet"	
+			;
+	
+	// Rule [65]
+	UnrestrictedFloatType	->
+				"unrestricted" FloatType  
+			|	FloatType	
+			;
+	
+	// Rule [66]
+	FloatType	->
+				"float"  
+			|	"double"	
+			;
+	
+	// Rule [67]
+	UnsignedIntegerType	->
+				"unsigned" IntegerType  
+			|	IntegerType	
+			;
+	
+	// Rule [68]
+	IntegerType	->
+				"short"  
+			|	"long" OptionalLong	
+			;
+	
+	// Rule [69]
+	OptionalLong	->
+				"long"  
+			|	\epsilon	
+			;
+	
+	// Rule [70]
+	TypeSuffix	->
+				"[" "]" TypeSuffix  
+			|	"?" TypeSuffixStartingWithArray  
+			|	\epsilon	
+			;
+	
+	// Rule [71]
+	TypeSuffixStartingWithArray	->
+				"[" "]" TypeSuffix  
+			|	\epsilon	
+			;
+	
+	// Rule [72]
+	Null	->
+				"?"  
+			|	\epsilon	
+			;
+	
+	// Rule [73]
+	ReturnType	->
+				Type  
+			|	"void"	
+			;
+	
+	// Rule [74]
+	ExtendedAttributeNoArgs	->
+				identifier	
+			;
+	
+	// Rule [75]
+	ExtendedAttributeArgList	->
+				identifier "(" ArgumentList ")"	
+			;
+	
+	// Rule [76]
+	ExtendedAttributeIdent	->
+				identifier "=" identifier	
+			;
+	
+	// Rule [77]
+	ExtendedAttributeNamedArgList	->
+				identifier "=" identifier "(" ArgumentList ")"	
+			;
+
+}

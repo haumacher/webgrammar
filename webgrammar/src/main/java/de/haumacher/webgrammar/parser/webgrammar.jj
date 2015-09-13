@@ -1,0 +1,525 @@
+/**
+ * JavaCC Grammar File
+ */
+options
+{
+    JDK_VERSION = "1.7";
+    STATIC = false;
+    UNICODE_INPUT = true;
+    JAVA_UNICODE_ESCAPE = false;
+}
+
+PARSER_BEGIN(WebGrammarParser)
+package de.haumacher.webgrammar.parser;
+
+import java.util.*;
+import de.haumacher.webgrammar.model.*;
+
+/**
+ * Parser that builds an {@link Expr} tree from its textual representation.
+ * 
+ * @author <a href="http://haumacher.de">Bernhard Haumacher</a>
+ */
+@SuppressWarnings({ "javadoc", "unused", "synthetic-access" })
+public class WebGrammarParser {
+
+	private String str(Token t) {
+		return t.image.substring(1, t.image.length() - 1);	}
+	
+}
+
+PARSER_END(WebGrammarParser)
+
+SKIP :
+{
+  " "
+| "\u00a0"
+| "\t"
+| "\r"
+| "\n"
+| < COMMENT: "//" ( ~[ "\r", "\n" ] )* >
+}
+
+TOKEN :
+{
+  < GRAMMAR: "grammar" >
+| < STRING:
+    (
+      "\""
+      (   (~["\"","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )*
+      "\""
+    |
+      "\'"
+      (   (~["\'","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\'"]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )*
+      "\'"
+    )
+  >
+| < INTEGER: "0" | ( ["1" - "9"] (["0" - "9"])* ) >
+| < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+| < #LETTER:
+      [
+       "\u0024",
+       "\u0041"-"\u005a",
+       "\u005f",
+       "\u0061"-"\u007a",
+       "\u00c0"-"\u00d6",
+       "\u00d8"-"\u00f6",
+       "\u00f8"-"\u00ff",
+       "\u0100"-"\u1fff",
+       "\u3040"-"\u318f",
+       "\u3300"-"\u337f",
+       "\u3400"-"\u3d2d",
+       "\u4e00"-"\u9fff",
+       "\uf900"-"\ufaff"
+      ]
+  >
+|
+  < #DIGIT:
+      [
+       "\u0030"-"\u0039",
+       "\u0660"-"\u0669",
+       "\u06f0"-"\u06f9",
+       "\u0966"-"\u096f",
+       "\u09e6"-"\u09ef",
+       "\u0a66"-"\u0a6f",
+       "\u0ae6"-"\u0aef",
+       "\u0b66"-"\u0b6f",
+       "\u0be7"-"\u0bef",
+       "\u0c66"-"\u0c6f",
+       "\u0ce6"-"\u0cef",
+       "\u0d66"-"\u0d6f",
+       "\u0e50"-"\u0e59",
+       "\u0ed0"-"\u0ed9",
+       "\u1040"-"\u1049"
+      ]
+  >
+}
+
+Grammar grammar() :
+{
+  List<Annotation> a;
+  Grammar g = F.grammar();
+  Rule p;
+}
+{
+  a = annotations()
+  {
+    g.setAnnotations(a);  }
+  < GRAMMAR > "{"
+  (
+    p = rule()    {
+      g.getRules().add(p);
+    }  )*
+  "}"
+  
+  {
+    return g;  }
+}
+
+Rule rule() :
+{
+  List<Annotation> a;
+  Token t;
+  Rule r;
+}
+{
+  a = annotations()
+  t = < IDENTIFIER >
+  (  r = contextFreeRule(a, t.image)
+  |  r = tokenRule(a, t.image)  )
+  ";"
+  {
+    return r;  }
+}
+
+List<Annotation> annotations() :
+{
+  List<Annotation> l = F.annotations();
+  Annotation a;
+}
+{
+  (    a = annotation()
+    {
+      l.add(a);    }  )*
+  {
+    return l;  }
+}
+
+Annotation annotation() :
+{
+  Annotation a = F.annotation();
+  Token n;
+  Argument arg;
+}
+{
+  "@" n = < IDENTIFIER >
+  {
+    a.setName(n.image);  }
+  (
+    "("
+  	(
+  	  arg = arg()
+  	  {
+  	    a.getArguments().add(arg);  	  }
+  	  (
+  	    ","
+  	    arg = arg()
+        {
+          a.getArguments().add(arg);        }
+  	  )*
+  	)?
+    ")"
+  )?
+  {
+    return a;  }
+}
+
+Argument arg() :
+{
+  Argument a;
+}
+{
+  ( a = qname()
+  | a = annotation()
+  )
+  {
+    return a;  }}
+
+Argument qname() :
+{
+  Name n;
+  QName q = null;
+  Token t;
+}
+{
+  t = < IDENTIFIER >
+  {
+    n = F.name(t.image);
+  }
+  (
+    "."    t = < IDENTIFIER >
+    {
+      if (q == null)      {
+        q = F.qname();
+        q.getNames().add(n);
+      }
+      q.getNames().add(F.name(t.image));    }
+  )*
+  {
+    return q == null ? n : q;  }
+}
+
+TokenRule tokenRule(List<Annotation> a, String name) :
+{  TokenRule r = F.regexpRule();
+  Regexp e;
+}{  "=" e = regexp()
+  {
+    r.setAnnotations(a);
+    r.setName(name);
+    r.setExpression(e);
+    return r;
+  }
+}
+
+ContextFreeRule contextFreeRule(List<Annotation> a, String name) :{  ContextFreeRule r = F.nonTerminalRule();
+  Expression e;
+}
+{  "->" e=expansions()
+  {
+    r.setAnnotations(a);
+    r.setName(name);
+    r.setExpression(e);    return r;
+  }
+}
+
+Regexp regexp() :
+{
+  Regexp s;
+  Regexp e;
+  RegexpAlternative a = null;
+}{
+  s = regexpSequence()
+  (
+    "|"
+    e = regexpSequence()
+    {
+      if (a == null) {	      a = F.regexpAlternative();
+	      a.getExpressions().add(s);
+      }      a.getExpressions().add(e);    }
+  )*
+  {	return a == null ? s : a;
+  }}
+
+RegexpSequence regexpSequence() :
+{
+  Regexp a;
+  RegexpSequence s = F.regexpSequence();}
+{  (
+    a = regexpAtom()
+    {
+      s.getExpressions().add(a);
+    }
+  )+
+  {
+    return s;  }
+}
+
+Regexp regexpAtom() :
+{
+  Regexp e;
+}{
+( e = regexpString()
+| e = regexpIdentifier()
+| e = regexpGroup()
+| e = regexpAlphabet()
+)
+{
+  return e;}
+}
+
+Regexp regexpAlphabet() :
+{
+  RegexpAlphabet a = F.regexpAlphabet();
+}
+{
+  (
+    "~"
+  	{
+  	  a.setNegative(true);  	}
+  )?
+  "[" regexpRanges(a) "]"
+  {
+    return a;  }}
+
+Regexp regexpGroup() :
+{
+  Regexp c;
+  RegexpOptional o;  RegexpZeroOrMore z;  RegexpOneOrMore m;}
+{  "(" c = regexp() ")"
+  (
+    "?"
+    {
+      o = F.regexpOptional();
+      o.setExpression(c);
+      c = o;    }
+  | "*"
+    {
+      z = F.regexpZeroOrMore();
+      z.setExpression(c);
+      c = z;
+    }
+  | "+"
+    {
+      m = F.regexpOneOrMore();
+      m.setExpression(c);
+      c = m;
+    }
+  )?
+  {
+    return c;  }
+}
+
+RegexpString regexpString() :
+{
+  RegexpString e = F.regexpString();
+  Token s;}
+{  s = < STRING >
+  {
+    e.setContent(str(s));
+    return e;
+  }
+}
+
+RegexpIdentifier regexpIdentifier() :
+{
+  RegexpIdentifier e = F.regexpIdentifier();
+  Token i;
+}
+{
+  i = < IDENTIFIER >
+  {
+    e.setName(i.image);
+    return e;
+  }
+}
+
+void regexpRanges(RegexpAlphabet a) :
+{
+  CharRange r;}
+{
+  r = charRange()
+  {
+    a.getRanges().add(r);  }
+  (
+    ","
+    r = charRange()
+    {
+      a.getRanges().add(r);
+    }
+  )*
+}
+
+CharRange charRange() :
+{
+  Token t;
+  CharRange r = F.charRange();}
+{  t = < STRING >
+  {
+    r.setFirst(str(t));  }
+  (
+    "-"    t = < STRING >
+    {
+      r.setLast(str(t));    }
+  )?
+  {
+    return r;  }}
+
+Expression expansions() : 
+{
+  Expression e1;  Expression e2;
+  Alternative a = null;}
+{
+  e1 = expansion()
+  (
+    "|"
+    e2 = expansion()
+    {
+      if (a == null)      {
+        a = F.alternative();
+        a.getExpressions().add(e1);      }
+      a.getExpressions().add(e2);    }
+  )*
+  {
+    return a == null ? e1 : a;  }
+}
+
+Expression expansion() :
+{
+  Expression r;}
+{
+( r = epsilon()
+| r = symbols()
+)
+{
+  return r;}
+}
+
+Epsilon epsilon() :
+{
+}
+{  "\\epsilon"
+  {
+    return F.emptyExpression();  }
+}
+
+Expression symbols() :
+{
+  Expression r = null;
+  Expression s;
+  Concat c = null;}
+{
+  (
+    s = symbol()
+    {
+      if (r == null) {        r = s;
+      } else {
+        if (c == null) {          c = F.concat();
+          c.getExpressions().add(r);
+          r = c;
+        }
+        c.getExpressions().add(s);      }
+    }
+  )+
+  {
+    return r;  }}
+
+Expression symbol() :
+{
+  Expression s;
+}
+{
+( s = constant()
+| s = nonTerminal()
+| s = parentesis()
+)
+{
+  return s;}
+}
+
+Expression parentesis() :
+{
+  Token t;
+  Expression s = null;
+  Expression e;
+  ModifiedExpression m;  Iteration i;}
+{
+  "(" e = expansions() ( "," s = expansions() )? ")"
+  (
+    "?"
+    {
+      m = F.optional();
+      m.setExpression(e);
+      e = m;
+    }
+  | "*"
+    {
+      i = F.zeroOrMore();
+      i.setExpression(e);
+      i.setSeparator(s);
+      e = i;
+    }
+  | "+"
+    {
+      i = F.oneOrMore();
+      i.setExpression(e);
+      i.setSeparator(s);
+      e = i;
+    }
+  | "[" t= < INTEGER > "..." "]"
+    {
+      i = F.iteration();
+      i.setExpression(e);
+      i.setSeparator(s);
+      i.setMin(Integer.parseInt(t.image));
+      e = i;    }
+  )?
+  {
+    return e;  }}
+
+Constant constant() :
+{
+  Token t;
+  Constant c = F.constant();
+}
+{
+  t = < STRING >
+  {
+    c.setContent(str(t));
+    return c;  }
+}
+
+NonTerminal nonTerminal() :
+{
+  Token t;
+  NonTerminal n = F.nonTerminal();
+}
+{
+  t = < IDENTIFIER >
+  {
+    n.setName(t.image);
+    return n;  }
+}

@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+
+<!-- 
+                             webgrammar 
+       A tool-chain for generating parsers and object models from 
+                      W3C specification documents.
+                      
+    Copyright (C) 2015  Bernhard Haumacher
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<name>Generator for Java binding WebIDL model definitions</name>
+	<description></description>
+
+	<groupId>de.haumacher.webgrammar</groupId>
+	<artifactId>webgrammar-main</artifactId>
+	<version>0.1-SNAPSHOT</version>
+
+	<licenses>
+		<license>
+			<name>GNU General Public License</name>
+			<url>https://gnu.org/licenses/gpl.html</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<id>haui</id>
+			<name>Bernhard Haumacher</name>
+			<email></email>
+		</developer>
+	</developers>
+
+	<dependencies>
+		<dependency>
+			<groupId>de.haumacher.values</groupId>
+			<artifactId>declarative-values</artifactId>
+			<version>0.2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>3.8.2</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<repositories>
+	</repositories>
+
+	<pluginRepositories>
+	</pluginRepositories>
+
+	<distributionManagement>
+	</distributionManagement>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<compileTarget>1.7</compileTarget>
+	</properties>
+
+	<build>
+		<extensions>
+		</extensions>
+		<pluginManagement>
+			<plugins>
+			    <plugin>
+			        <artifactId>maven-compiler-plugin</artifactId>
+			        <version>3.2</version>
+			        <configuration>
+			            <source>1.7</source>
+			            <target>1.7</target>
+			        </configuration>
+			    </plugin>
+   	            <plugin>
+	                <groupId>org.apache.maven.plugins</groupId>
+	                <artifactId>maven-eclipse-plugin</artifactId>
+	                <configuration>
+	                    <downloadSources>true</downloadSources>
+	                </configuration>
+	            </plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
+		</plugins>
+	</build>
+
+	<reporting>
+		<plugins>
+		</plugins>
+	</reporting>
+
+</project>
