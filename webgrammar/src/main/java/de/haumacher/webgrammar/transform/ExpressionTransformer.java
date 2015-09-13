@@ -20,7 +20,6 @@
 package de.haumacher.webgrammar.transform;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -159,11 +158,11 @@ public abstract class ExpressionTransformer<A> implements ExpressionVisitor<Expr
 		return expr;
 	}
 	
-	public Expression copy(Expression expression) {
+	public static Expression copy(Expression expression) {
 		return clone(expression);
 	}
 
-	public Collection<Expression> copy(List<Expression> expressions) {
+	public static List<Expression> copy(List<Expression> expressions) {
 		return cloneList(expressions);
 	}
 	

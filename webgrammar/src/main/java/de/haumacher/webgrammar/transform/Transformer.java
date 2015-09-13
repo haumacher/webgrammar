@@ -54,6 +54,8 @@ public class Transformer {
 		
 		new InlineDelegates().visit(grammar);
 		
+		new ConsolidateEnumProductions().visit(grammar);
+
 //		new DeclareStringLiterals().transform(grammar);
 		new JavaCCGenerator(_out).visit(grammar);
 		new WebgrammarPrinter(_out).visit(grammar);

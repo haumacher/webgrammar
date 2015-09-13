@@ -332,8 +332,16 @@ grammar {
   ;
   
   PrimitiveType -> 
-    ( UnsignedIntegerType
-    | UnrestrictedFloatType
+    ( "unsigned" "short" 
+    | "unsigned" "long" 
+    | "unsigned" "long" "long" 
+    | "short"
+    | "long"
+    | "long" "long" 
+    | "unrestricted" "float" 
+    | "unrestricted" "double" 
+    | "float"
+    | "double"
     | "boolean"
     | "byte"
     | "octet"
@@ -341,8 +349,10 @@ grammar {
   ;
   
   UnrestrictedFloatType -> 
-    ( "unrestricted" FloatType 
-    | FloatType
+    ( "unrestricted" "float" 
+    | "unrestricted" "double" 
+    | "float"
+    | "double"
     )
   ;
   
@@ -353,14 +363,19 @@ grammar {
   ;
   
   UnsignedIntegerType -> 
-    ( "unsigned" IntegerType 
-    | IntegerType
+    ( "unsigned" "short" 
+    | "unsigned" "long" 
+    | "unsigned" "long" "long" 
+    | "short"
+    | "long"
+    | "long" "long" 
     )
   ;
   
   IntegerType -> 
     ( "short"
-    | OptionalLong$NonEmpty OptionalLong 
+    | "long"
+    | "long" "long" 
     )
   ;
   
